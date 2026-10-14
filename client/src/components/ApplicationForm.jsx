@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { STATUSES } from '../utils/constants.js'
+import Loader from './Loader.jsx'
 
 const blankApplication = {
   company: '',
@@ -10,9 +11,15 @@ const blankApplication = {
   notes: '',
 }
 
-function ApplicationForm({ application, onClose, onSave }) {
+function ApplicationForm({ application, error, isSaving, onClose, onSave }) {
   const [values, setValues] = useState(() =>
-    application ? { ...blankApplication, ...application } : { ...blankApplication },
+    application
+      ? {
+          ...blankApplication,
+          ...application,
+          dateApplied: application.dateApplied?.slice(0, 10) || '',
+        }
+      : { ...blankApplication },
   )
   const [errors, setErrors] = useState({})
 
@@ -22,7 +29,7 @@ function ApplicationForm({ application, onClose, onSave }) {
     setErrors((current) => ({ ...current, [name]: '' }))
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     const nextErrors = {}
     if (!values.company.trim()) nextErrors.company = 'Company is required.'
@@ -40,14 +47,18 @@ function ApplicationForm({ application, onClose, onSave }) {
 
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
-    onSave({
+    const applicationData = {
       ...application,
       ...values,
       company: values.company.trim(),
       role: values.role.trim(),
-      jobLink: values.jobLink.trim(),
       notes: values.notes.trim(),
-    })
+    }
+    if (values.jobLink.trim()) applicationData.jobLink = values.jobLink.trim()
+    else delete applicationData.jobLink
+    if (!values.dateApplied) delete applicationData.dateApplied
+
+    await onSave(applicationData)
   }
 
   return (
@@ -89,12 +100,17 @@ function ApplicationForm({ application, onClose, onSave }) {
           <Field id="notes" label="Notes (optional)">
             <textarea className={inputClass()} id="notes" name="notes" onChange={handleChange} rows="3" value={values.notes} />
           </Field>
+          {error && (
+            <p aria-live="polite" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          )}
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-            <button className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50" onClick={onClose} type="button">
+            <button className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60" disabled={isSaving} onClick={onClose} type="button">
               Cancel
             </button>
-            <button className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2" type="submit">
-              {application ? 'Save changes' : 'Add application'}
+            <button className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-60" disabled={isSaving} type="submit">
+              {isSaving ? <Loader label="Saving..." /> : application ? 'Save changes' : 'Add application'}
             </button>
           </div>
         </form>
