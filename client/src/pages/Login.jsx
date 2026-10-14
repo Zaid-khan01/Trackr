@@ -7,12 +7,10 @@ import { useAuth } from '../context/AuthContext.jsx'
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function Login() {
-  const { isAuthenticated, login } = useAuth()
+  const { isAuthenticated, login, loading, error, clearError } = useAuth()
   const navigate = useNavigate()
   const [values, setValues] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
-  const [submitError, setSubmitError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
 
   if (isAuthenticated) {
     return <Navigate replace to="/" />
@@ -33,25 +31,21 @@ function Login() {
     const { name, value } = event.target
     setValues((current) => ({ ...current, [name]: value }))
     setErrors((current) => ({ ...current, [name]: '' }))
-    setSubmitError('')
+    clearError()
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
     const nextErrors = validate()
     setErrors(nextErrors)
-    setSubmitError('')
     if (Object.keys(nextErrors).length > 0) return
 
-    setIsLoading(true)
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 350))
-      login({ email: values.email.trim(), password: values.password })
+    const user = await login({
+      email: values.email.trim(),
+      password: values.password,
+    })
+    if (user) {
       navigate('/')
-    } catch {
-      setSubmitError('We could not sign you in. Check your details and try again.')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -107,18 +101,18 @@ function Login() {
             {errors.password && <p className="mt-1.5 text-sm text-red-600">{errors.password}</p>}
           </div>
 
-          {submitError && (
+          {error && (
             <p aria-live="polite" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {submitError}
+              {error}
             </p>
           )}
 
           <button
             className="flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isLoading}
+            disabled={loading}
             type="submit"
           >
-            {isLoading ? <Loader label="Signing in..." /> : 'Sign in'}
+            {loading ? <Loader label="Signing in..." /> : 'Sign in'}
           </button>
         </form>
 

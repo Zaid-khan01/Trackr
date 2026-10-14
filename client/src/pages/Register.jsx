@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function Register() {
-  const { isAuthenticated, login } = useAuth()
+  const { isAuthenticated, register, loading, error, clearError } = useAuth()
   const navigate = useNavigate()
   const [values, setValues] = useState({
     name: '',
@@ -16,7 +16,6 @@ function Register() {
     confirmPassword: '',
   })
   const [errors, setErrors] = useState({})
-  const [isLoading, setIsLoading] = useState(false)
 
   if (isAuthenticated) {
     return <Navigate replace to="/" />
@@ -30,8 +29,8 @@ function Register() {
     if (!emailPattern.test(values.email.trim())) {
       nextErrors.email = 'Enter a valid email address.'
     }
-    if (values.password.length < 6) {
-      nextErrors.password = 'Password must be at least 6 characters.'
+    if (values.password.length < 8) {
+      nextErrors.password = 'Password must be at least 8 characters.'
     }
     if (values.password !== values.confirmPassword) {
       nextErrors.confirmPassword = 'Passwords do not match.'
@@ -43,6 +42,7 @@ function Register() {
     const { name, value } = event.target
     setValues((current) => ({ ...current, [name]: value }))
     setErrors((current) => ({ ...current, [name]: '' }))
+    clearError()
   }
 
   async function handleSubmit(event) {
@@ -51,17 +51,13 @@ function Register() {
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
-    setIsLoading(true)
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 350))
-      login({
-        name: values.name.trim(),
-        email: values.email.trim(),
-        password: values.password,
-      })
+    const user = await register({
+      name: values.name.trim(),
+      email: values.email.trim(),
+      password: values.password,
+    })
+    if (user) {
       navigate('/')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -157,12 +153,18 @@ function Register() {
             )}
           </div>
 
+          {error && (
+            <p aria-live="polite" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+
           <button
             className="flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isLoading}
+            disabled={loading}
             type="submit"
           >
-            {isLoading ? <Loader label="Creating account..." /> : 'Create account'}
+            {loading ? <Loader label="Creating account..." /> : 'Create account'}
           </button>
         </form>
 
