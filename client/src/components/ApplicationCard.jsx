@@ -3,13 +3,24 @@ import { STATUSES } from '../utils/constants.js'
 
 function ApplicationCard({ application, onEdit, onDelete }) {
   const badgeColor = STATUSES.find(({ name }) => name === application.status)?.badgeColor
-  const dateLabel = application.dateApplied
-    ? new Date(`${application.dateApplied}T00:00:00`).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : 'Not provided'
+  const dateLabel = (() => {
+    if (!application.dateApplied) return 'Not provided'
+
+    const rawDate = String(application.dateApplied)
+    const datePart = rawDate.slice(0, 10)
+
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(datePart)
+      ? new Date(`${datePart}T00:00:00`)
+      : new Date(rawDate)
+
+    if (Number.isNaN(date.getTime())) return 'Not provided'
+
+    return date.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  })()
 
   return (
     <article className="flex h-full flex-col rounded-xl bg-white p-5 shadow-sm">
